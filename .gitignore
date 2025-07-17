@@ -1,0 +1,5 @@
+# Ignore generated icon files
+public/favicon.ico
+public/*.ico
+public/*.png
+public/*.svg
