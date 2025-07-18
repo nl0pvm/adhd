@@ -32,9 +32,11 @@ class AuthController extends BaseController
                 ]);
             }
 
-            $this->users->createUser($data);
+            $userId = $this->users->createUser($data);
+            $user   = $this->users->find($userId);
 
-            return redirect()->to('/');
+            return redirect()->to('/')
+                ->with('message', 'Save this OTP secret: ' . $user['totp_secret']);
         }
 
         return view('auth/register', [
@@ -49,17 +51,42 @@ class AuthController extends BaseController
             $password = $this->request->getPost('password');
 
             $user = $this->users->where('email', $email)->first();
+            $attemptModel = new \App\Models\LoginAttemptModel();
+            $userId = $user['id'] ?? null;
+
+            if ($user && $this->isLocked($userId)) {
+                return redirect()->back()
+                    ->with('error', 'Too many login attempts. Try again later.')
+                    ->withInput();
+            }
 
             if ($user && password_verify($password, $user['password_hash'])) {
-                $session = session();
-                $session->set([
+                if (!empty($user['totp_secret'])) {
+                    session()->set('pending_user_id', $user['id']);
+                    return redirect()->to('verify-otp');
+                }
+
+                session()->set([
                     'user_id'   => $user['id'],
                     'username'  => $user['username'],
+                    'role_id'   => $user['role_id'],
                     'logged_in' => true,
+                ]);
+
+                $attemptModel->insert([
+                    'user_id'    => $user['id'],
+                    'ip_address' => $this->request->getIPAddress(),
+                    'success'    => 1,
                 ]);
 
                 return redirect()->to('/');
             }
+
+            $attemptModel->insert([
+                'user_id'    => $userId,
+                'ip_address' => $this->request->getIPAddress(),
+                'success'    => 0,
+            ]);
 
             return redirect()->back()
                 ->with('error', 'Invalid email or password.')
@@ -67,6 +94,65 @@ class AuthController extends BaseController
         }
 
         return view('auth/login');
+    }
+
+    public function verifyOtp()
+    {
+        $session = session();
+        $userId  = $session->get('pending_user_id');
+
+        if (!$userId) {
+            return redirect()->to('login');
+        }
+
+        $user         = $this->users->find($userId);
+        $attemptModel = new \App\Models\LoginAttemptModel();
+
+        if ($this->request->getMethod() === 'post') {
+            $code = $this->request->getPost('code');
+            $totp = \OTPHP\TOTP::create($user['totp_secret']);
+
+            if ($totp->verify($code)) {
+                $session->remove('pending_user_id');
+                $session->set([
+                    'user_id'   => $user['id'],
+                    'username'  => $user['username'],
+                    'role_id'   => $user['role_id'],
+                    'logged_in' => true,
+                ]);
+
+                $attemptModel->insert([
+                    'user_id'    => $userId,
+                    'ip_address' => $this->request->getIPAddress(),
+                    'success'    => 1,
+                ]);
+
+                return redirect()->to('/');
+            }
+
+            $attemptModel->insert([
+                'user_id'    => $userId,
+                'ip_address' => $this->request->getIPAddress(),
+                'success'    => 0,
+            ]);
+
+            return redirect()->back()->with('error', 'Invalid verification code.');
+        }
+
+        return view('auth/verify_otp');
+    }
+
+    private function isLocked(int $userId): bool
+    {
+        $attemptModel = new \App\Models\LoginAttemptModel();
+        $time = date('Y-m-d H:i:s', time() - 900); // 15 minutes
+
+        $count = $attemptModel->where('user_id', $userId)
+            ->where('success', 0)
+            ->where('created_at >=', $time)
+            ->countAllResults();
+
+        return $count >= 5;
     }
 
     public function logout()

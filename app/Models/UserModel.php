@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use OTPHP\TOTP;
 
 class UserModel extends Model
 {
@@ -15,6 +16,7 @@ class UserModel extends Model
         'email',
         'password_hash',
         'role_id',
+        'totp_secret',
     ];
     protected $useTimestamps = true;
 
@@ -30,6 +32,11 @@ class UserModel extends Model
         if (isset($data['password'])) {
             $data['password_hash'] = password_hash($data['password'], PASSWORD_DEFAULT);
             unset($data['password']);
+        }
+
+        if (!isset($data['totp_secret'])) {
+            $totp = \OTPHP\TOTP::create();
+            $data['totp_secret'] = $totp->getSecret();
         }
 
         $this->insert($data);
