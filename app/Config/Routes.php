@@ -9,3 +9,5 @@ $routes->get('/', 'Home::index');
 $routes->match(['get', 'post'], 'register', 'AuthController::register');
 $routes->match(['get', 'post'], 'login', 'AuthController::login');
 $routes->get('logout', 'AuthController::logout');
+$routes->match(['get', 'post'], 'forgot-password', 'AuthController::forgotPassword');
+$routes->match(['get', 'post'], 'reset-password', 'AuthController::resetPassword');
