@@ -131,3 +131,4 @@ public/favicon.ico
 public/*.ico
 public/*.png
 public/*.svg
+/.phpunit.result.cache
