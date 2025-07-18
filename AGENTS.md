@@ -14,6 +14,7 @@ This project is a PHP/CodeIgniter application that reports customer service upti
 - When adding new features, keep them performance-friendly and mindful of API rate limits.
 - Keep commit messages in **English** and use descriptive summaries.
 - Provide database migrations for MySQL whenever schema changes are introduced.
+- Commits must not contain binary files.
 
 ## Testing
 
