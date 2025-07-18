@@ -64,6 +64,8 @@ Hieronder staan 10 mogelijke functionaliteiten voor de CodeIgniter-applicatie, e
 1. Gebruikerregistratie met rollen (Beheer, Accountmanager, Klant)
 2. Inloggen/uitloggen
 3. Wachtwoord reset via e-mail
+   - Formulier voor vergeten wachtwoord op `/forgot-password`
+   - Resetlink per e-mail met tijdelijk token
 4. Tweestapsverificatie
 5. Rolgebaseerde toegangscontrole (per controller/methode)
 6. Gebruikersprofielen met bewerk-/bekijkrechten
