@@ -42,6 +42,41 @@ class AuthController extends BaseController
         ]);
     }
 
+    public function login()
+    {
+        if ($this->request->getMethod() === 'post') {
+            $email    = $this->request->getPost('email');
+            $password = $this->request->getPost('password');
+
+            $user = $this->users->where('email', $email)->first();
+
+            if ($user && password_verify($password, $user['password_hash'])) {
+                $session = session();
+                $session->set([
+                    'user_id'   => $user['id'],
+                    'username'  => $user['username'],
+                    'logged_in' => true,
+                ]);
+
+                return redirect()->to('/');
+            }
+
+            return redirect()->back()
+                ->with('error', 'Invalid email or password.')
+                ->withInput();
+        }
+
+        return view('auth/login');
+    }
+
+    public function logout()
+    {
+        $session = session();
+        $session->destroy();
+
+        return redirect()->to('/');
+    }
+
     private function getRoles(): array
     {
         $db = \Config\Database::connect();
